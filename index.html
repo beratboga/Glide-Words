@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GLIDE WORDS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cell-empty: #ffffff;
+            --line-color: #0129FF;
+            --blux-bg: #4D61FE;
+            --text-dark: #1a2238;
+            --cell-size: 55px;
+        }
+        body {
+            margin: 0; padding: 0;
+            background-color: #1a2238;
+            background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url('glide.jpg');
+            background-position: center;
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            font-family: 'Nunito', sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            height: 100dvh; overflow: hidden; touch-action: none;
+        }
+        #intro-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100dvh; background-color: var(--blux-bg); display: flex; justify-content: center; align-items: center; z-index: 300; opacity: 1; transition: opacity 0.8s ease; }
+        #intro-screen h1 { font-family: 'Fredoka One', cursive; font-size: 85px; color: #ffffff; margin: 0; letter-spacing: 5px; text-transform: uppercase; text-shadow: 3px 3px 0px rgba(0,0,0,0.15); }
+        #intro-screen.hide { opacity: 0; pointer-events: none; }
+        #main-menu { position: absolute; top: 0; left: 0; width: 100%; height: 100dvh; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 200; opacity: 1; transition: opacity 0.5s ease; background: transparent; }
+        #main-menu.hide { opacity: 0; pointer-events: none; }
+        #game-logo { font-family: 'Fredoka One', cursive; font-size: 85px; color: #ffffff; margin-bottom: 90px; transform: translateY(-40px); text-shadow: 0 5px 20px rgba(0,0,0,0.8); letter-spacing: 5px; text-align: center; line-height: 1.1; }
+        #start-btn { padding: 20px 70px; font-size: 32px; font-family: 'Nunito', sans-serif; font-weight: 900; color: white; background: linear-gradient(135deg, #4D61FE, var(--line-color)); border: 3px solid #fff; border-radius: 40px; cursor: pointer; box-shadow: 0 10px 25px rgba(1,41,255,0.5); transition: transform 0.1s; transform: translateY(-20px); }
+        #start-btn:active { transform: translateY(-20px) scale(0.95); }
+        #ribbon-container { position: absolute; top: -15px; left: 50%; transform: translateX(-50%) scale(0); width: auto; padding: 0 25px; min-width: 140px; height: 45px; background: linear-gradient(to bottom, #ff5e00, #d32f2f); border-radius: 4px; box-shadow: 0 4px 15px rgba(211,47,47,0.5); z-index: 50; display: flex; justify-content: center; align-items: center; opacity: 0; transition: transform 0.3s cubic-bezier(0.175,0.885,0.32,1.275), opacity 0.3s; white-space: nowrap; }
+        #ribbon-container::before, #ribbon-container::after { content: ''; position: absolute; top: 50%; transform: translateY(-50%); width: 25px; height: 45px; background: #b32400; clip-path: polygon(0 0, 100% 0, 80% 50%, 100% 100%, 0 100%, 20% 50%); z-index: -1; }
+        #ribbon-container::before { left: -18px; }
+        #ribbon-container::after { right: -18px; transform: translateY(-50%) rotateY(180deg); }
+        #ribbon-text { color: #fff; font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+        #ribbon-container.show { transform: translateX(-50%) scale(1); opacity: 1; }
+        .flying-letter { position: fixed; z-index: 1000; width: 60px; height: 60px; background-color: var(--line-color); color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 32px; font-weight: 900; box-shadow: 0 5px 15px rgba(1,41,255,0.5); transition: all 0.4s cubic-bezier(0.25,0.1,0.25,1); pointer-events: none; }
+        #game-container { width: 100%; max-width: 450px; height: 100dvh; display: flex; flex-direction: column; justify-content: space-between; position: relative; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
+        #game-container.active { opacity: 1; pointer-events: all; }
+        #top-bar { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; font-weight: bold; font-size: 18px; flex-shrink: 0; }
+        #level-indicator { background: rgba(255,255,255,0.85); padding: 8px 15px; border-radius: 20px; font-weight: 900; color: var(--text-dark); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #coin-display { display: flex; align-items: center; background: rgba(255,255,255,0.85); padding: 8px 15px; border-radius: 20px; font-size: 18px; color: var(--line-color); font-weight: 900; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .top-btn-group { display: flex; gap: 10px; }
+        .btn { background: rgba(255,255,255,0.85); border-radius: 50%; width: 45px; height: 45px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: var(--line-color); font-size: 20px; transition: transform 0.1s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border: none; }
+        .btn:active { transform: scale(0.9); }
+        #grid-container { flex: 1; min-height: 0; display: flex; justify-content: center; align-items: center; padding: 10px; overflow: visible; }
+        #grid { display: grid; justify-content: center; align-content: center; }
+        .cell { width: var(--cell-size); height: var(--cell-size); font-size: calc(var(--cell-size) * 0.52); background-color: var(--cell-empty); border-radius: calc(var(--cell-size) * 0.15); display: flex; justify-content: center; align-items: center; font-weight: 900; color: transparent; box-shadow: 0 4px 6px rgba(0,0,0,0.15); transition: background-color 0.3s; transform: scale(0); animation: popIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275) forwards; }
+        @keyframes popIn { to { transform: scale(1); } }
+        .cell.active { background-color: var(--line-color); color: #ffffff; box-shadow: 0 0 15px rgba(1,41,255,0.5); }
+        .cell.empty { background-color: transparent; box-shadow: none; pointer-events: none; animation: none; transform: scale(1); }
+        #bottom-area { flex-shrink: 0; height: 320px; display: flex; flex-direction: column; align-items: center; padding-bottom: env(safe-area-inset-bottom, 20px); position: relative; }
+        #current-selection { text-align: center; font-size: 30px; font-weight: 900; color: #fff; height: 40px; letter-spacing: 3px; margin-bottom: 5px; text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+        @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
+        .shake { animation: shake 0.45s ease-in-out; color: #ff4444 !important; }
+        #wheel-container { width: 260px; height: 260px; position: relative; border-radius: 50%; background: rgba(255,255,255,0.95); box-shadow: 0 10px 25px rgba(0,0,0,0.2); touch-action: none; }
+        #line-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+        .letter-node { background-color: transparent; border-radius: 50%; position: absolute; display: flex; justify-content: center; align-items: center; font-weight: 900; color: var(--text-dark); user-select: none; z-index: 2; transition: transform 0.1s, background-color 0.1s, color 0.1s, left 0.25s ease-out, top 0.25s ease-out; transform: translate(-50%, -50%); }
+        .letter-node.selected { background-color: var(--line-color); color: #ffffff; transform: translate(-50%, -50%) scale(1.15); box-shadow: 0 4px 12px rgba(1,41,255,0.45); }
+        #shuffle-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 50px; height: 50px; background: transparent; border: none; font-size: 26px; cursor: pointer; z-index: 3; opacity: 0.35; color: var(--line-color); }
+        #shuffle-btn:active { opacity: 0.9; transform: translate(-50%, -50%) scale(0.9); }
+        #success-modal { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,20,30,0.85); backdrop-filter: blur(12px); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
+        #success-modal.show { opacity: 1; pointer-events: all; }
+        #success-logo { font-family: 'Fredoka One', cursive; font-size: 75px; color: #ffffff; margin-bottom: 50px; text-shadow: 0 5px 25px rgba(1,41,255,0.9); letter-spacing: 5px; text-align: center; transform: scale(0.8); transition: transform 0.6s cubic-bezier(0.175,0.885,0.32,1.275); }
+        #success-modal.show #success-logo { transform: scale(1); }
+        #next-level-btn { padding: 20px 60px; font-size: 28px; font-family: 'Nunito', sans-serif; font-weight: 900; color: white; background: linear-gradient(135deg, #4D61FE, var(--line-color)); border: 3px solid #fff; border-radius: 40px; cursor: pointer; box-shadow: 0 10px 25px rgba(1,41,255,0.5); transition: transform 0.1s; }
+        #next-level-btn:active { transform: scale(0.95); }
+        #dict-modal { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(1,15,50,0.9); backdrop-filter: blur(8px); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 150; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        #dict-modal.show { opacity: 1; pointer-events: all; }
+        .dict-content { background: #fff; width: 85%; max-height: 70vh; border-radius: 20px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
+        .dict-header { font-family: 'Fredoka One', cursive; font-size: 24px; color: var(--line-color); text-align: center; margin-bottom: 5px; }
+        .dict-sub { text-align: center; font-size: 13px; color: #888; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px; font-weight: bold; }
+        .dict-list { flex: 1; overflow-y: auto; padding-right: 5px; }
+        .dict-item { margin-bottom: 12px; padding: 10px; border-radius: 10px; background: #f4f6fc; border-left: 4px solid var(--line-color); }
+        .dict-word { font-weight: 900; color: var(--text-dark); font-size: 20px; }
+        .dict-meaning { font-size: 14px; color: #555; margin-top: 3px; font-weight: 700; }
+        .blurred-item { filter: blur(5px); opacity: 0.4; user-select: none; pointer-events: none; border-left: 4px solid #ccc; }
+        .close-dict-btn { margin-top: 15px; padding: 12px; font-size: 18px; font-weight: 900; color: white; background: linear-gradient(135deg, #4D61FE, var(--line-color)); border: none; border-radius: 15px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="intro-screen"><h1>BLUX</h1></div>
+<div id="main-menu" class="hide">
+    <div id="game-logo">GLIDE WORDS</div>
+    <button id="start-btn">PLAY</button>
+</div>
+<div id="game-container">
+    <div id="success-modal">
+        <div id="success-logo">GLIDE</div>
+        <button id="next-level-btn">Sonraki Bölüm ➔</button>
+    </div>
+    <div id="dict-modal">
+        <div class="dict-content">
+            <div class="dict-header">SÖZLÜK</div>
+            <div class="dict-sub">Bulunmayan kelimeler gizlidir.</div>
+            <div class="dict-list" id="dict-list-container"></div>
+            <button class="close-dict-btn" id="close-dict-btn">KAPAT</button>
+        </div>
+    </div>
+    <div id="top-bar">
+        <div id="level-indicator">Bölüm 1</div>
+        <div id="coin-display">💎 <span id="coin-text" style="margin-left:5px;">0</span></div>
+        <div class="top-btn-group">
+            <button class="btn" id="dict-btn">❓</button>
+            <button class="btn" id="hint-btn">💡</button>
+        </div>
+    </div>
+    <div id="grid-container"><div id="grid"></div></div>
+    <div id="bottom-area">
+        <div id="ribbon-container"><span id="ribbon-text">HARİKA!</span></div>
+        <div id="current-selection"></div>
+        <div id="wheel-container">
+            <canvas id="line-canvas" width="260" height="260"></canvas>
+            <button id="shuffle-btn">🔀</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────────
+let currentLevelIndex = 0;
+let currentLevelWords = [];
+let currentLetters = [];
+let selectedNodes = [];
+let currentWordString = "";
+let foundWords = [];
+let isDragging = false;
+let pointerPos = { x: 0, y: 0 };
+let coins = 0;
+let wheelAngles = [];
+let lastSelectionCount = 0;
+let globalRows = 0, globalCols = 0;
+let isLevelLoading = false;
+let isLevelComplete = false;
+
+// ── SÖZLÜK ─────────────────────────────────────────────────────────────────────
+const tdkDictionary = {
+    "BİLİM":"Evrenin kurallarını inceleyen sistemli bilgi bütünü.","İLİM":"Bilim, bilgi.","BİL":"Bilmek eylemi.",
+    "DENİZ":"Yeryüzünün büyük bölümünü kaplayan tuzlu su kütlesi.","DİN":"İnsanların inandığı manevi sistem.","DİZ":"Bacağın ortasında bulunan eklem yeri.",
+    "GÜNEŞ":"Gündüzleri Dünya'yı aydınlatan ve ısıtan gök cismi.","GÜN":"Yirmi dört saatlik zaman dilimi.","ŞEN":"Neşeli, sevinçli.",
+    "DOĞA":"Kendiliğinden var olan canlı ve cansız varlıkların tümü, tabiat.","DAĞ":"Çevresine göre yüksek olan yeryüzü şekli.","ODA":"Bir evin veya yapının ayrılmış bölümlerinden her biri.",
+    "ÇİÇEK":"Bitkilerin üreme organlarını taşıyan renkli bölümü.","ÇEK":"Çekmek eylemi / Banka ödeme emri.","İÇE":"İçeriye doğru.",
+    "HEDİYE":"Birini sevindirmek için verilen şey, armağan.","YEDİ":"Altıdan sonra gelen sayı.","DİYE":"Amacıyla, maksadıyla.",
+    "ORMAN":"Ağaçlarla kaplı geniş doğal alan.","ORAN":"İki büyüklük arasındaki bağıntı.","ROMA":"İtalya'nın başkenti olan tarihi şehir.","NORM":"Kural, standart.",
+    "SABIR":"Zorluklara veya gecikmelere karşı dayanma gücü.","ASIR":"Yüz yıllık zaman dilimi, yüzyıl.","SARI":"Güneşin veya altının rengi.","SIR":"Gizli tutulan bilgi.",
+    "KİRAZ":"Kırmızı renkli, tek çekirdekli tatlı yaz meyvesi.","İKAZ":"Uyarı, dikkat çekme.","KİR":"Herhangi bir şeyin üzerinde oluşan pislik.","KAR":"Soğuk havalarda yağan beyaz buz kristalleri.",
+    "BAHAR":"Kış ile yaz arasındaki ılıman mevsim.","HARA":"At üretilen ve bakılan çiftlik.","BAR":"İçecek içilip eğlenilen mekan.","RAB":"Yaratıcı, Allah.",
+    "EKMEK":"Undan yapılan temel gıda.","EMEK":"Bir iş için harcanan güç.","KEM":"Kötü, fena.","KEK":"Tatlı bir hamur işi.",
+    "ÇİLEK":"Kırmızı renkli, yüzeyi pütürlü tatlı meyve.","İLKE":"Temel düşünce, kural.","ÇİL":"Ciltte oluşan küçük kahverengi leke.","KEL":"Saçı dökülmüş.","İLK":"Birinci olan.",
+    "KALEM":"Yazı yazmaya yarayan araç.","ALEM":"Evren, dünya.","ELMA":"Kırmızı veya yeşil, tatlı, sert meyve.",
+    "ZEYTİN":"Kahvaltılarda yenen yağlı ve çekirdekli meyve.","NİYET":"Bir şeyi yapmayı önceden düşünme.","YENİ":"Kullanılmamış, yeni yapılmış.","YETİ":"Bir işi yapabilme gücü.","İYİ":"Kötü olmayan.",
+    "TAVUK":"Yumurtası ve eti için beslenen kümes hayvanı.","KAV":"Kolay tutuşan madde.","KAT":"Bir yapının üst üste olan bölümleri.","TAK":"Zafer kemeri.","KUT":"İlahi bereket, saadet.",
+    "YAZAR":"Kitap veya yazı yazmayı meslek edinen kişi.","AYAZ":"Durgun havada çıkan kuru soğuk.","YARA":"Vücutta oluşan kesik.","YAZ":"En sıcak mevsim.","ZAR":"Küp şeklindeki oyun aracı.","RAY":"Tren demiri.",
+    "KLAVYE":"Bilgisayar veya piyano tuş takımı.","ALEV":"Yanan maddelerin çıkardığı parlak gaz.","VALE":"Arabaları park eden görevli.","YEL":"Hafif rüzgar.","LAV":"Yanardağdan fışkıran erimiş kaya.","EVLA":"Daha iyi, tercih edilen.",
+    "SİSTEM":"Birbirine bağlı parçalardan oluşan düzen.","SİTE":"Büyük konut grubu veya internet adresi.","SES":"Kulağın duyduğu titreşim.","SİS":"Görüşü engelleyen su buharı.","SEM":"İşaret.","SET":"Bariyer.",
+    "MANTIK":"Doğru düşünme kuralı ve bilimi.","MANTI":"Hamur yemeği.","TANI":"Teşhis.","KATI":"Sert madde.","ATIK":"Çöp.","KAN":"Hayati kırmızı sıvı.","TIK":"Hafif vurma sesi.",
+    "PENCERE":"Işık ve hava girmesini sağlayan camlı açıklık.","CEREN":"Ceylan.","PEÇE":"Yüz örtüsü.","NEM":"Rutubet.","CEP":"Giysi torbası."
+};
+
+// ── SES ────────────────────────────────────────────────────────────────────────
+let audioCtx;
+function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+function playTone(freq, type, duration, vol = 0.1, slideDown = false) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    if (slideDown) osc.frequency.exponentialRampToValueAtTime(freq * 0.5, audioCtx.currentTime + duration);
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(vol, audioCtx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + duration);
+}
+function playSelectSound(i) { const s=[523.25,587.33,659.25,783.99,880.00,1046.50]; playTone(s[(i-1)%s.length],'sine',0.4,0.12); }
+function playCorrectSound() { [0,60,120,180].forEach((d,i)=>setTimeout(()=>playTone([523.25,659.25,783.99,1046.50][i],'sine',0.4,0.15),d)); }
+function playWrongSound() { playTone(350,'sine',0.3,0.2,true); setTimeout(()=>playTone(250,'sine',0.3,0.2,true),100); }
+function playTileLandSound() { playTone(880,'sine',0.12,0.07); }
+
+// ── DÜZELTME: Wheel harfleri hesaplaması ──────────────────────────────────────
+// Her kelimede bir harf en fazla kaç kez geçiyorsa o kadar harf wheel'e eklenir.
+// Örnek: ZEYTİN (1×İ) + İYİ (2×İ) → wheel'de 2×İ olmalı.
+function computeRequiredLetters(words) {
+    let maxNeeded = {};
+    words.forEach(word => {
+        let count = {};
+        word.split("").forEach(ch => { count[ch] = (count[ch] || 0) + 1; });
+        Object.entries(count).forEach(([ch, n]) => { maxNeeded[ch] = Math.max(maxNeeded[ch] || 0, n); });
+    });
+    return Object.entries(maxNeeded).flatMap(([ch, n]) => Array(n).fill(ch));
+}
+
+// ── LEVEL VERİSİ ──────────────────────────────────────────────────────────────
+const rawLevels = [
+    "BİLİM,İLİM,BİL","DENİZ,DİN,DİZ","GÜNEŞ,GÜN,ŞEN","DOĞA,DAĞ,ODA","ÇİÇEK,ÇEK,İÇE","HEDİYE,YEDİ,DİYE",
+    "ORMAN,ORAN,ROMA,NORM","SABIR,ASIR,SARI,SIR","KİRAZ,İKAZ,KİR,KAR","BAHAR,HARA,BAR,RAB","EKMEK,EMEK,KEM,KEK",
+    "ÇİLEK,İLKE,ÇİL,KEL,İLK","KALEM,ALEM,ELMA,KEL,KEM","ZEYTİN,NİYET,YENİ,YETİ,İYİ","TAVUK,KAV,KAT,TAK,KUT",
+    "YAZAR,AYAZ,YARA,YAZ,ZAR,RAY","KLAVYE,ALEV,VALE,YEL,LAV,EVLA","SİSTEM,SİTE,SES,SİS,SEM,SET",
+    "MANTIK,MANTI,TANI,KATI,ATIK,KAN,TIK","PENCERE,CEREN,PEÇE,NEM,CEP"
+];
+
+rawLevels.sort((a, b) => {
+    let wa = a.split(","), wb = b.split(",");
+    if (wa.length !== wb.length) return wa.length - wb.length;
+    return wa[0].length - wb[0].length;
+});
+
+const levels = rawLevels.map((raw, idx) => {
+    let wordList = raw.split(",");
+    let letters = computeRequiredLetters(wordList).sort(() => Math.random() - 0.5);
+    return { levelName: idx + 1, letters, wordList };
+});
+
+// ── IZGARA ALGORİTMASI ────────────────────────────────────────────────────────
+const GS = 30; // grid size sabiti
+
+function isSubwordConflict(placed, word, sr, sc, dir) {
+    for (let pw of placed) {
+        if (pw.dir !== dir) continue;
+        if (dir === 'H') {
+            if (pw.row !== sr) continue;
+            let pwStart=pw.col, pwEnd=pw.col+pw.word.length-1;
+            let newStart=sc, newEnd=sc+word.length-1;
+            if (newStart>=pwStart && newEnd<=pwEnd) return true;
+            if (pwStart>=newStart && pwEnd<=newEnd) return true;
+        } else {
+            if (pw.col !== sc) continue;
+            let pwStart=pw.row, pwEnd=pw.row+pw.word.length-1;
+            let newStart=sr, newEnd=sr+word.length-1;
+            if (newStart>=pwStart && newEnd<=pwEnd) return true;
+            if (pwStart>=newStart && pwEnd<=newEnd) return true;
+        }
+    }
+    return false;
+}
+
+function canPlace(board, word, sr, sc, dir, placed) {
+    let er = sr + (dir==='V' ? word.length-1 : 0);
+    let ec = sc + (dir==='H' ? word.length-1 : 0);
+    if (sr<0||sc<0||er>=GS||ec>=GS) return false;
+    // Başı ve sonu boş olmalı
+    if (dir==='H') {
+        if (sc>0 && board[sr][sc-1]!==null) return false;
+        if (ec<GS-1 && board[sr][ec+1]!==null) return false;
+    } else {
+        if (sr>0 && board[sr-1][sc]!==null) return false;
+        if (er<GS-1 && board[er+1][sc]!==null) return false;
+    }
+    let shared = 0;
+    for (let i=0; i<word.length; i++) {
+        let r = sr+(dir==='V'?i:0), c = sc+(dir==='H'?i:0);
+        let ex = board[r][c];
+        if (ex!==null) {
+            if (ex!==word[i]) return false;
+            shared++;
+        } else {
+            // Dik yönde bitişik harf var mı?
+            if (dir==='H') {
+                if (r>0 && board[r-1][c]!==null) return false;
+                if (r<GS-1 && board[r+1][c]!==null) return false;
+            } else {
+                if (c>0 && board[r][c-1]!==null) return false;
+                if (c<GS-1 && board[r][c+1]!==null) return false;
+            }
+        }
+    }
+    return shared>=1 && shared<word.length;
+}
+
+function buildGrid(wordsArray) {
+    let board = Array(GS).fill(null).map(()=>Array(GS).fill(null));
+    let placed = [], remaining = [...wordsArray];
+    let first = remaining.shift();
+    let r0=Math.floor(GS/2), c0=Math.floor(GS/2)-Math.floor(first.length/2);
+    for (let i=0;i<first.length;i++) board[r0][c0+i]=first[i];
+    placed.push({word:first,row:r0,col:c0,dir:'H'});
+
+    let passes=6, changed=true;
+    while (remaining.length>0 && changed && passes-->0) {
+        changed=false;
+        for (let i=remaining.length-1;i>=0;i--) {
+            let word=remaining[i], best=null, bestScore=Infinity;
+            for (let pw of placed) {
+                let dirs = pw.dir==='H' ? ['V','H'] : ['H','V'];
+                for (let nd of dirs) {
+                    for (let wi=0;wi<word.length;wi++) {
+                        for (let pi=0;pi<pw.word.length;pi++) {
+                            if (pw.word[pi]!==word[wi]) continue;
+                            let sr, sc;
+                            if (nd==='V') {
+                                sr = pw.row + (pw.dir==='V'?pi:0) - wi;
+                                sc = pw.col + (pw.dir==='H'?pi:0);
+                            } else {
+                                sr = pw.row + (pw.dir==='V'?pi:0);
+                                sc = pw.col + (pw.dir==='H'?pi:0) - wi;
+                            }
+                            if (!canPlace(board,word,sr,sc,nd,placed)) continue;
+                            let score=Math.abs(sr-GS/2)+Math.abs(sc-GS/2);
+                            if (score<bestScore){bestScore=score;best={sr,sc,dir:nd};}
+                        }
+                    }
+                }
+            }
+            if (best) {
+                for(let k=0;k<word.length;k++)
+                    board[best.sr+(best.dir==='V'?k:0)][best.sc+(best.dir==='H'?k:0)]=word[k];
+                placed.push({word,row:best.sr,col:best.sc,dir:best.dir});
+                remaining.splice(i,1); changed=true;
+            }
+        }
+    }
+    if (!placed.length) return null;
+    let minR=GS,maxR=0,minC=GS,maxC=0;
+    placed.forEach(pw=>{
+        let er=pw.row+(pw.dir==='V'?pw.word.length-1:0);
+        let ec=pw.col+(pw.dir==='H'?pw.word.length-1:0);
+        minR=Math.min(minR,pw.row);maxR=Math.max(maxR,er);
+        minC=Math.min(minC,pw.col);maxC=Math.max(maxC,ec);
+    });
+    return {
+        words:placed.map(pw=>({word:pw.word,row:pw.row-minR,col:pw.col-minC,dir:pw.dir})),
+        rows:maxR-minR+1, cols:maxC-minC+1, placedCount:placed.length
+    };
+}
+
+function generateBestCrossword(wordList) {
+    let sorted=[...wordList].sort((a,b)=>b.length-a.length);
+    let best=null;
+    for (let attempt=0;attempt<150;attempt++) {
+        let shuffled=[sorted[0],...[...sorted.slice(1)].sort(()=>Math.random()-0.5)];
+        let result=buildGrid(shuffled);
+        if (!result) continue;
+        let complete=result.placedCount===wordList.length;
+        let better=!best||result.placedCount>best.placedCount||
+            (result.placedCount===best.placedCount&&result.rows*result.cols<best.rows*best.cols);
+        if (better) best=result;
+        if (complete) break;
+    }
+    if (!best||best.placedCount<wordList.length) return buildFallbackGrid(wordList);
+    return best;
+}
+
+function buildFallbackGrid(words) {
+    let result=[],row=0,maxLen=Math.max(...words.map(w=>w.length));
+    words.forEach(word=>{result.push({word,row,col:0,dir:'H'});row+=2;});
+    return{words:result,rows:row-1,cols:maxLen,placedCount:words.length};
+}
+
+// ── DOM ────────────────────────────────────────────────────────────────────────
+const gridEl=document.getElementById("grid");
+const gridContainerEl=document.getElementById("grid-container");
+const wheelEl=document.getElementById("wheel-container");
+const currentSelectionEl=document.getElementById("current-selection");
+const ribbonContainerEl=document.getElementById("ribbon-container");
+const ribbonTextEl=document.getElementById("ribbon-text");
+const canvas=document.getElementById("line-canvas");
+const ctx=canvas.getContext("2d");
+const coinTextEl=document.getElementById("coin-text");
+
+// ── BAŞLANGIÇ ──────────────────────────────────────────────────────────────────
+window.onload=function(){
+    setTimeout(()=>{
+        document.getElementById('intro-screen').classList.add('hide');
+        document.getElementById('main-menu').classList.remove('hide');
+        updateTheme(0);
+    },2500);
+    document.getElementById("start-btn").onclick=startGame;
+};
+
+function startGame(e){
+    if(e)e.preventDefault();
+    initAudio();
+    document.getElementById('main-menu').classList.add('hide');
+    document.getElementById('game-container').classList.add('active');
+    setupInputEvents();
+    document.getElementById("hint-btn").onclick=useHint;
+    document.getElementById("shuffle-btn").onclick=shuffleLetters;
+    document.getElementById("next-level-btn").onclick=loadNextLevel;
+    document.getElementById("dict-btn").onclick=openDictionary;
+    document.getElementById("close-dict-btn").onclick=()=>document.getElementById("dict-modal").classList.remove('show');
+    coinTextEl.innerText=coins;
+    loadLevel(0);
+    window.addEventListener("resize",()=>{if(currentLevelWords.length>0)adjustGridScale();});
+}
+
+function updateTheme(n){
+    const bgs=["arka-plan-1.png","arka-plan-2.png","arka-plan-3.png","arka-plan-4.png"];
+    let bg=n>0?bgs[Math.min(Math.ceil(n/25)-1,bgs.length-1)]:"glide.jpg";
+    document.body.style.backgroundImage=`linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.7)),url('${bg}')`;
+}
+
+// ── LEVEL ──────────────────────────────────────────────────────────────────────
+function loadLevel(index){
+    if(index<0||index>=levels.length)index=0;
+    currentLevelIndex=index;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    let ld=levels[index];
+    updateTheme(ld.levelName);
+    currentLetters=[...ld.letters];
+    foundWords=[];isLevelComplete=false;isLevelLoading=false;
+    currentWordString="";selectedNodes=[];lastSelectionCount=0;
+    currentSelectionEl.innerText="";currentSelectionEl.classList.remove("shake");
+    let board=generateBestCrossword(ld.wordList);
+    currentLevelWords=board.words;globalRows=board.rows;globalCols=board.cols;
+    document.getElementById("level-indicator").innerText="Bölüm "+ld.levelName;
+    adjustGridScale();createGrid(globalRows,globalCols,currentLevelWords);drawWheel();
+}
+
+function adjustGridScale(){
+    if(!globalRows||!globalCols)return;
+    let cw=gridContainerEl.clientWidth-20,ch=gridContainerEl.clientHeight-20,gap=5;
+    let size=Math.max(18,Math.floor(Math.min(60,(cw-(globalCols-1)*gap)/globalCols,(ch-(globalRows-1)*gap)/globalRows)));
+    document.documentElement.style.setProperty('--cell-size',size+'px');
+    gridEl.style.gap=gap+'px';
+    gridEl.style.gridTemplateColumns=`repeat(${globalCols},${size}px)`;
+    gridEl.style.gridTemplateRows=`repeat(${globalRows},${size}px)`;
+}
+
+function createGrid(rows,cols,words){
+    gridEl.innerHTML='';
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+        let cell=document.createElement("div");
+        cell.className="cell empty";cell.id=`cell-${r}-${c}`;
+        cell.style.animationDelay=`${(r+c)*0.03}s`;gridEl.appendChild(cell);
+    }
+    words.forEach(wd=>{
+        for(let i=0;i<wd.word.length;i++){
+            let r=wd.row+(wd.dir==='V'?i:0),c=wd.col+(wd.dir==='H'?i:0);
+            let cell=document.getElementById(`cell-${r}-${c}`);
+            if(cell){cell.classList.remove("empty");cell.dataset.letter=wd.word[i];cell.innerText=wd.word[i];}
+        }
+    });
+}
+
+// ── WHEEL ──────────────────────────────────────────────────────────────────────
+function drawWheel(){
+    document.querySelectorAll('.letter-node').forEach(el=>el.remove());
+    wheelAngles=currentLetters.map((_,i)=>i);
+    currentLetters.forEach(letter=>{
+        let node=document.createElement("div");
+        node.className="letter-node";node.innerText=letter;node.dataset.char=letter;
+        wheelEl.appendChild(node);
+    });
+    updateWheelPositions();
+}
+
+function updateWheelPositions(){
+    const total=currentLetters.length;
+    const radius=total<=5?90:total<=6?85:total<=7?80:total<=8?75:68;
+    const nodeSize=total<=6?54:total<=8?46:40;
+    const fontSize=total<=6?28:total<=8?23:19;
+    const cx=130,cy=130,step=(2*Math.PI)/total;
+    document.querySelectorAll('.letter-node').forEach((node,i)=>{
+        let angle=wheelAngles[i]*step-Math.PI/2;
+        let x=cx+Math.cos(angle)*radius,y=cy+Math.sin(angle)*radius;
+        node.dataset.x=x;node.dataset.y=y;
+        node.style.left=x+'px';node.style.top=y+'px';
+        node.style.width=nodeSize+'px';node.style.height=nodeSize+'px';
+        node.style.fontSize=fontSize+'px';
+    });
+}
+
+// ── GİRİŞ ──────────────────────────────────────────────────────────────────────
+function setupInputEvents(){
+    wheelEl.addEventListener("mousedown",handleStart);
+    window.addEventListener("mousemove",handleMove);
+    window.addEventListener("mouseup",handleEnd);
+    wheelEl.addEventListener("touchstart",handleStart,{passive:false});
+    window.addEventListener("touchmove",handleMove,{passive:false});
+    window.addEventListener("touchend",handleEnd);
+}
+
+function handleStart(e){
+    if(e.target.id==='shuffle-btn')return;
+    initAudio();
+    let cx=e.clientX??e.touches[0].clientX,cy=e.clientY??e.touches[0].clientY;
+    let el=document.elementFromPoint(cx,cy);
+    if(el&&el.classList.contains("letter-node")){
+        e.preventDefault();isDragging=true;addNode(el);updatePointerPos(cx,cy);renderCanvas();
+    }
+}
+
+function handleMove(e){
+    if(!isDragging)return;
+    e.preventDefault();
+    let cx=e.clientX??(e.touches?.[0]?.clientX??0),cy=e.clientY??(e.touches?.[0]?.clientY??0);
+    updatePointerPos(cx,cy);
+    let el=document.elementFromPoint(cx,cy);
+    if(el&&el.classList.contains("letter-node")){
+        if(selectedNodes.length>1&&selectedNodes[selectedNodes.length-2]===el){
+            selectedNodes.pop().classList.remove("selected");
+            currentWordString=currentWordString.slice(0,-1);
+            currentSelectionEl.innerText=currentWordString;lastSelectionCount--;
+        } else addNode(el);
+    }
+    renderCanvas();
+}
+
+function handleEnd(){
+    if(!isDragging)return;
+    isDragging=false;
+    let word=currentWordString,nodes=[...selectedNodes];
+    selectedNodes.forEach(n=>n.classList.remove("selected"));
+    selectedNodes=[];currentWordString="";
+    ctx.clearRect(0,0,canvas.width,canvas.height);lastSelectionCount=0;
+    try{checkWord(word,nodes);}catch(err){console.error(err);}
+}
+
+function addNode(node){
+    if(selectedNodes.includes(node))return;
+    selectedNodes.push(node);node.classList.add("selected");
+    currentWordString+=node.dataset.char;currentSelectionEl.innerText=currentWordString;
+    currentSelectionEl.classList.remove("shake");lastSelectionCount++;playSelectSound(lastSelectionCount);
+}
+
+function updatePointerPos(cx,cy){
+    const rect=canvas.getBoundingClientRect();
+    pointerPos.x=cx-rect.left;pointerPos.y=cy-rect.top;
+}
+
+function renderCanvas(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(!selectedNodes.length)return;
+    ctx.lineWidth=12;ctx.lineCap="round";ctx.lineJoin="round";
+    ctx.strokeStyle="rgba(1,41,255,0.85)";
+    ctx.beginPath();
+    ctx.moveTo(+selectedNodes[0].dataset.x,+selectedNodes[0].dataset.y);
+    for(let i=1;i<selectedNodes.length;i++)ctx.lineTo(+selectedNodes[i].dataset.x,+selectedNodes[i].dataset.y);
+    if(isDragging)ctx.lineTo(pointerPos.x,pointerPos.y);
+    ctx.stroke();
+}
+
+// ── KELİME KONTROLÜ ────────────────────────────────────────────────────────────
+function checkWord(word,sourceNodes){
+    if(!word||word.length<2)return;
+    let matched=currentLevelWords.find(w=>w.word===word);
+    if(matched&&!foundWords.includes(word)){
+        foundWords.push(word);coins+=word.length*10;coinTextEl.innerText=coins;
+        playCorrectSound();showRibbonBanner("HARİKA!");revealWordAnimated(matched,sourceNodes);
+    } else {
+        playWrongSound();
+        currentSelectionEl.innerText=word;currentSelectionEl.classList.add("shake");
+        setTimeout(()=>{currentSelectionEl.innerText="";currentSelectionEl.classList.remove("shake");},600);
+    }
+}
+
+function showRibbonBanner(text){
+    ribbonTextEl.innerText=text;ribbonContainerEl.classList.add('show');
+    setTimeout(()=>{ribbonContainerEl.classList.remove('show');checkLevelComplete();},1400);
+}
+
+function revealWordAnimated(wordData,sourceNodes){
+    for(let i=0;i<wordData.word.length;i++){
+        let r=wordData.row+(wordData.dir==='V'?i:0),c=wordData.col+(wordData.dir==='H'?i:0);
+        let targetCell=document.getElementById(`cell-${r}-${c}`);
+        if(!targetCell||targetCell.classList.contains("active"))continue;
+        let delay=i*70, sn=sourceNodes?.[i];
+        if(sn){
+            let sRect=sn.getBoundingClientRect(),tRect=targetCell.getBoundingClientRect();
+            let flyer=document.createElement("div");flyer.className="flying-letter";flyer.innerText=wordData.word[i];
+            flyer.style.cssText=`left:${sRect.left}px;top:${sRect.top}px;`;document.body.appendChild(flyer);
+            setTimeout(()=>{
+                flyer.style.left=tRect.left+'px';flyer.style.top=tRect.top+'px';
+                flyer.style.borderRadius='8px';flyer.style.width=tRect.width+'px';flyer.style.height=tRect.height+'px';
+            },delay+30);
+            setTimeout(()=>{
+                flyer.remove();
+                if(!targetCell.classList.contains("active")){targetCell.classList.add("active");playTileLandSound();}
+            },delay+420);
+        } else {
+            setTimeout(()=>{
+                if(!targetCell.classList.contains("active")){targetCell.classList.add("active");playTileLandSound();}
+            },delay);
+        }
+    }
+}
+
+function checkLevelComplete(){
+    if(foundWords.length>=currentLevelWords.length&&!isLevelComplete){
+        isLevelComplete=true;
+        setTimeout(()=>{
+            let nextIdx=(currentLevelIndex+1)%levels.length;
+            document.getElementById("next-level-btn").innerText=`Bölüm ${levels[nextIdx].levelName} ➔`;
+            document.getElementById("success-modal").classList.add("show");
+        },700);
+    }
+}
+
+function loadNextLevel(){
+    if(isLevelLoading)return;
+    isLevelLoading=true;
+    document.getElementById("success-modal").classList.remove("show");
+    let nextIdx=(currentLevelIndex+1)%levels.length;
+    setTimeout(()=>{loadLevel(nextIdx);isLevelLoading=false;},300);
+}
+
+function shuffleLetters(){
+    initAudio();
+    for(let i=wheelAngles.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[wheelAngles[i],wheelAngles[j]]=[wheelAngles[j],wheelAngles[i]];}
+    updateWheelPositions();ctx.clearRect(0,0,canvas.width,canvas.height);
+    currentWordString="";currentSelectionEl.innerText="";
+    selectedNodes.forEach(n=>n.classList.remove("selected"));selectedNodes=[];isDragging=false;lastSelectionCount=0;
+}
+
+function useHint(){
+    initAudio();
+    const cost=50;
+    if(coins<cost){alert("Yeterli elmasın yok! (50 💎 Gerekli)");playWrongSound();return;}
+    let targetCell=null;
+    // Önce yarı bulunmuş kelimelere bak
+    for(let wd of currentLevelWords){
+        if(foundWords.includes(wd.word))continue;
+        for(let i=0;i<wd.word.length;i++){
+            let r=wd.row+(wd.dir==='V'?i:0),c=wd.col+(wd.dir==='H'?i:0);
+            let cell=document.getElementById(`cell-${r}-${c}`);
+            if(cell&&!cell.classList.contains('active')){targetCell=cell;break;}
+        }
+        if(targetCell)break;
+    }
+    if(!targetCell){
+        let hidden=Array.from(document.querySelectorAll('.cell:not(.empty):not(.active)'));
+        if(hidden.length)targetCell=hidden[Math.floor(Math.random()*hidden.length)];
+    }
+    if(targetCell){
+        coins-=cost;coinTextEl.innerText=coins;
+        targetCell.classList.add("active");playCorrectSound();
+        // Check if any unfound word now has all cells revealed
+        checkHintWordCompletion();
+        setTimeout(()=>checkLevelComplete(),150);
+    }
+}
+
+function checkHintWordCompletion(){
+    for(let wd of currentLevelWords){
+        if(foundWords.includes(wd.word))continue;
+        let allActive=true;
+        for(let i=0;i<wd.word.length;i++){
+            let r=wd.row+(wd.dir==='V'?i:0),c=wd.col+(wd.dir==='H'?i:0);
+            let cell=document.getElementById(`cell-${r}-${c}`);
+            if(!cell||!cell.classList.contains('active')){allActive=false;break;}
+        }
+        if(allActive) foundWords.push(wd.word);
+    }
+}
+
+function openDictionary(){
+    let container=document.getElementById("dict-list-container");
+    container.innerHTML='';
+    [...currentLevelWords].sort((a,b)=>b.word.length-a.word.length).forEach(wd=>{
+        let found=foundWords.includes(wd.word);
+        let div=document.createElement("div");
+        div.className="dict-item"+(found?"":" blurred-item");
+        div.innerHTML=`<div class="dict-word">${found?wd.word:"???"}</div>
+                       <div class="dict-meaning">${found?(tdkDictionary[wd.word]||"Türkçe sözlükte yer alan anlamlı bir kelime."):"Kelimeyi bulduğunuzda anlamı burada görünecek."}</div>`;
+        container.appendChild(div);
+    });
+    document.getElementById("dict-modal").classList.add('show');
+}
+</script>
+</body>
+</html>
